@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Book Inventory</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0e0d0b;
+      --surface: #161410;
+      --border: #2a2720;
+      --accent: #e8b84b;
+      --accent2: #c47c3e;
+      --text: #f0ead8;
+      --muted: #7a7060;
+      --danger: #c0392b;
+      --success: #2ecc71;
+      --mono: 'DM Mono', monospace;
+      --serif: 'Playfair Display', serif;
+      --sans: 'DM Sans', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+    }
+
+    /* Header */
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 2rem 3rem;
+      display: flex;
+      align-items: baseline;
+      gap: 1.5rem;
+    }
+    header h1 {
+      font-family: var(--serif);
+      font-size: 2rem;
+      color: var(--accent);
+      letter-spacing: -0.5px;
+    }
+    header span {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    /* Layout */
+    .layout {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      min-height: calc(100vh - 85px);
+    }
+
+    /* Sidebar / Form */
+    .sidebar {
+      border-right: 1px solid var(--border);
+      padding: 2rem;
+      background: var(--surface);
+    }
+    .sidebar h2 {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    label {
+      display: block;
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.4rem;
+    }
+    input, select {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      padding: 0.6rem 0.8rem;
+      border-radius: 4px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus, select:focus {
+      border-color: var(--accent);
+    }
+    select option { background: var(--bg); }
+
+    .btn {
+      width: 100%;
+      padding: 0.75rem;
+      border: none;
+      border-radius: 4px;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: all 0.15s;
+      margin-top: 0.5rem;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #0e0d0b;
+      font-weight: 600;
+    }
+    .btn-primary:hover { background: #f0c96a; }
+    .btn-secondary {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { border-color: var(--muted); color: var(--text); }
+
+    /* Toast */
+    #toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      padding: 0.7rem 1.2rem;
+      border-radius: 4px;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 999;
+      pointer-events: none;
+    }
+    #toast.show { opacity: 1; }
+    #toast.success { background: var(--success); color: #0e0d0b; }
+    #toast.error { background: var(--danger); color: #fff; }
+
+    /* Main content */
+    .main { padding: 2rem 2.5rem; overflow-y: auto; }
+
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+    }
+    .top-bar h2 {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    #book-count {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--accent);
+    }
+
+    /* Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th {
+      font-family: var(--mono);
+      font-size: 0.6rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      text-align: left;
+      padding: 0.6rem 0.8rem;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 0.9rem 0.8rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.88rem;
+      vertical-align: middle;
+    }
+    tr:hover td { background: rgba(232,184,75,0.03); }
+
+    td.title-cell { font-family: var(--serif); font-size: 1rem; color: var(--accent); }
+    td.mono { font-family: var(--mono); font-size: 0.78rem; color: var(--muted); }
+
+    /* Inline edit */
+    .editable {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 0.88rem;
+      padding: 0.2rem 0.4rem;
+      border-radius: 3px;
+      width: 80px;
+      transition: border-color 0.2s;
+    }
+    .editable:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: var(--bg);
+    }
+
+    /* Action buttons */
+    .actions { display: flex; gap: 0.5rem; }
+    .btn-save, .btn-delete {
+      padding: 0.3rem 0.7rem;
+      border: none;
+      border-radius: 3px;
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-save { background: var(--accent); color: #0e0d0b; display: none; }
+    .btn-save:hover { background: #f0c96a; }
+    .btn-delete { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
+    .btn-delete:hover { background: var(--danger); color: #fff; }
+
+    .genre-badge {
+      display: inline-block;
+      padding: 0.15rem 0.5rem;
+      border-radius: 20px;
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    /* Empty state */
+    .empty {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      letter-spacing: 2px;
+    }
+    .empty span { display: block; font-size: 3rem; margin-bottom: 1rem; }
+
+    /* Loading */
+    .loading {
+      text-align: center;
+      padding: 3rem;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--muted);
+      letter-spacing: 2px;
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:0.4} 50%{opacity:1} }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>📚 Book Inventory</h1>
+  <span>Management System</span>
+</header>
+
+<div class="layout">
+  <!-- Sidebar: Add Book Form -->
+  <aside class="sidebar">
+    <h2 id="form-title">Add New Book</h2>
+    <div class="form-group">
+      <label>Title *</label>
+      <input id="f-title" type="text" placeholder="e.g. The Great Gatsby" />
+    </div>
+    <div class="form-group">
+      <label>ISBN *</label>
+      <input id="f-isbn" type="text" placeholder="e.g. 978-3-16-148410-0" />
+    </div>
+    <div class="form-group">
+      <label>Author</label>
+      <input id="f-author" type="text" placeholder="e.g. F. Scott Fitzgerald" />
+    </div>
+    <div class="form-group">
+      <label>Genre</label>
+      <select id="f-genre">
+        <option value="">— Select Genre —</option>
+        <option>Fiction</option>
+        <option>Non-Fiction</option>
+        <option>Science Fiction</option>
+        <option>Fantasy</option>
+        <option>Mystery</option>
+        <option>Thriller</option>
+        <option>Biography</option>
+        <option>History</option>
+        <option>Self-Help</option>
+        <option>Other</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Price ($)</label>
+      <input id="f-price" type="number" min="0" max="9999" placeholder="0.00" />
+    </div>
+    <div class="form-group">
+      <label>Stock</label>
+      <input id="f-stock" type="number" min="0" placeholder="0" />
+    </div>
+    <div class="form-group">
+      <label>Published Year</label>
+      <input id="f-year" type="number" placeholder="e.g. 1925" min="1000" max="2100" />
+    </div>
+    <button class="btn btn-primary" onclick="submitBook()">＋ Add Book</button>
+    <button class="btn btn-secondary" id="cancel-btn" style="display:none" onclick="cancelEdit()">✕ Cancel</button>
+  </aside>
+
+  <!-- Main: Book Table -->
+  <main class="main">
+    <div class="top-bar">
+      <h2>All Books</h2>
+      <span id="book-count"></span>
+    </div>
+    <div id="book-list"><div class="loading">LOADING INVENTORY…</div></div>
+  </main>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  const API = "/api/books";
+  let editingId = null;
+
+  // ── Utility ──────────────────────────────────────────────
+  function toast(msg, type = "success") {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.className = `show ${type}`;
+    setTimeout(() => t.className = "", 2500);
+  }
+
+  function val(id) { return document.getElementById(id).value.trim(); }
+
+  // ── Fetch & Render ────────────────────────────────────────
+  async function loadBooks() {
+    const container = document.getElementById("book-list");
+    try {
+      const res = await fetch(API);
+      const books = await res.json();
+
+      document.getElementById("book-count").textContent =
+        books.length === 0 ? "" : `${books.length} record${books.length !== 1 ? "s" : ""}`;
+
+      if (books.length === 0) {
+        container.innerHTML = `<div class="empty"><span>📭</span>NO BOOKS IN INVENTORY</div>`;
+        return;
+      }
+
+      container.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Author</th>
+              <th>ISBN</th>
+              <th>Genre</th>
+              <th>Price</th>
+              <th>Stock</th>
+              <th>Year</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${books.map(bookRow).join("")}
+          </tbody>
+        </table>`;
+    } catch (err) {
+      container.innerHTML = `<div class="empty"><span>⚠️</span>COULD NOT REACH SERVER</div>`;
+    }
+  }
+
+  function bookRow(b) {
+    return `
+      <tr id="row-${b._id}">
+        <td class="title-cell">${esc(b.title)}</td>
+        <td>${esc(b.author || "—")}</td>
+        <td class="mono">${esc(b.isbn)}</td>
+        <td>${b.genre ? `<span class="genre-badge">${esc(b.genre)}</span>` : "—"}</td>
+        <td>
+          <input class="editable" id="price-${b._id}"
+            type="number" value="${b.price ?? ""}" min="0" max="9999"
+            oninput="showSave('${b._id}')" />
+        </td>
+        <td>
+          <input class="editable" id="stock-${b._id}"
+            type="number" value="${b.stock ?? 0}" min="0"
+            oninput="showSave('${b._id}')" />
+        </td>
+        <td class="mono">${b.publishedYear || "—"}</td>
+        <td>
+          <div class="actions">
+            <button class="btn-save" id="save-${b._id}" onclick="saveInline('${b._id}')">SAVE</button>
+            <button class="btn-delete" onclick="deleteBook('${b._id}')">DEL</button>
+          </div>
+        </td>
+      </tr>`;
+  }
+
+  function esc(str) {
+    const d = document.createElement("div");
+    d.textContent = str;
+    return d.innerHTML;
+  }
+
+  function showSave(id) {
+    document.getElementById(`save-${id}`).style.display = "inline-block";
+  }
+
+  // ── CRUD Operations ───────────────────────────────────────
+  async function submitBook() {
+    const title = val("f-title");
+    const isbn  = val("f-isbn");
+    if (!title || !isbn) { toast("Title and ISBN are required.", "error"); return; }
+
+    const body = {
+      title,
+      isbn,
+      author: val("f-author") || undefined,
+      genre:  val("f-genre")  || undefined,
+      price:  val("f-price")  !== "" ? Number(val("f-price"))  : undefined,
+      stock:  val("f-stock")  !== "" ? Number(val("f-stock"))  : 0,
+      publishedYear: val("f-year") !== "" ? Number(val("f-year")) : undefined,
+    };
+
+    try {
+      const url    = editingId ? `${API}/${editingId}` : API;
+      const method = editingId ? "PUT" : "POST";
+      const res    = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
+      toast(editingId ? "Book updated!" : "Book added!");
+      cancelEdit();
+      loadBooks();
+    } catch (err) {
+      toast(err.message, "error");
+    }
+  }
+
+  async function saveInline(id) {
+    const price = document.getElementById(`price-${id}`).value;
+    const stock = document.getElementById(`stock-${id}`).value;
+    try {
+      const res = await fetch(`${API}/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          price: price !== "" ? Number(price) : undefined,
+          stock: stock !== "" ? Number(stock) : 0,
+        }),
+      });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
+      toast("Saved!");
+      document.getElementById(`save-${id}`).style.display = "none";
+    } catch (err) {
+      toast(err.message, "error");
+    }
+  }
+
+  async function deleteBook(id) {
+    if (!confirm("Delete this book?")) return;
+    try {
+      const res = await fetch(`${API}/${id}`, { method: "DELETE" });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
+      toast("Book deleted.");
+      loadBooks();
+    } catch (err) {
+      toast(err.message, "error");
+    }
+  }
+
+  function cancelEdit() {
+    editingId = null;
+    ["f-title","f-isbn","f-author","f-genre","f-price","f-stock","f-year"]
+      .forEach(id => {
+        const el = document.getElementById(id);
+        el.value = el.tagName === "SELECT" ? "" : "";
+      });
+    document.getElementById("form-title").textContent  = "Add New Book";
+    document.querySelector(".btn-primary").textContent = "＋ Add Book";
+    document.getElementById("cancel-btn").style.display = "none";
+  }
+
+  // Initial load
+  loadBooks();
+</script>
+</body>
+</html>
